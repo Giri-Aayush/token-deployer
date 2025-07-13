@@ -298,7 +298,7 @@ async function main() {
         }
         
         // Create contract file
-        const contractCode = generateContract(name, symbolUpper, website, telegram, twitter);
+        const contractCode = generateContract(name, symbolUpper, website, telegram, twitter, networkName);
         
         if (!fs.existsSync('contracts')) {
             fs.mkdirSync('contracts');
@@ -420,12 +420,11 @@ async function main() {
         
         // Next steps
         logSubHeader('📋 NEXT STEPS');
-        console.log(colorize('   1. ✓ Verify Token on network', 'cyan'));
-        console.log(colorize('   2. 💰 Send ETH to contract for liquidity', 'cyan'));
-        console.log(colorize('   3. 🟢 Call openTrading() function', 'cyan'));
-        console.log(colorize('   4. 🔥 Burn LP tokens', 'cyan'));
-        console.log(colorize('   5. 🚫 Remove trading limits', 'cyan'));
-        console.log(colorize('   6. 🔐 Renounce ownership', 'cyan'));
+        console.log(colorize('   1. 💰 Send ETH to contract for liquidity', 'cyan'));
+        console.log(colorize('   2. 🟢 Call openTrading() function', 'cyan'));
+        console.log(colorize('   3. 🔥 Burn LP tokens', 'cyan'));
+        console.log(colorize('   4. 🚫 Remove trading limits', 'cyan'));
+        console.log(colorize('   5. 🔐 Renounce ownership', 'cyan'));
         
         console.log('\n' + colorize('🎊 Thank you for using Token Deployer! 🎊', 'bright'));
         
@@ -438,13 +437,18 @@ async function main() {
     }
 }
 
-function generateContract(name, symbol, website, telegram, twitter) {
+function generateContract(name, symbol, website, telegram, twitter, networkName) {
     let header = '// SPDX-License-Identifier: UNLICENSE\n\n/*\n\n';
     header += `${name} (${symbol})\n\n`;
     if (website) header += `Website: ${website}\n`;
     if (telegram) header += `Telegram: ${telegram}\n`;
     if (twitter) header += `Twitter: ${twitter}\n`;
     header += '\n*/\n\n';
+    
+    // Choose correct Uniswap router address based on network
+    const routerAddress = networkName.includes('mainnet') 
+        ? '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D'  // Mainnet
+        : '0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3';  // Sepolia
     
     return `${header}pragma solidity ^0.8.24;
 
@@ -747,7 +751,7 @@ contract ${symbol} is Context, IERC20, Ownable {
 
     function openTrading() external onlyOwner() {
         require(!tradingOpen, "trading is already open");
-        uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+        uniswapV2Router = IUniswapV2Router02(${routerAddress});
         _approve(address(this), address(uniswapV2Router), _tTotal);
         uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(address(this), uniswapV2Router.WETH());
         uniswapV2Router.addLiquidityETH{value: address(this).balance}(address(this), balanceOf(address(this)), 0, 0, owner(), block.timestamp);
